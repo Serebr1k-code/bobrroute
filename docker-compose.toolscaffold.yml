@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  omniroute-toolscaffold:
+    image: ghcr.io/diegosouzapw/omniroute-toolscaffold:toolscaffold-latest
+    container_name: omniroute-toolscaffold
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:20128:20128"
+    volumes:
+      - ./omniroute-data:/app/data
+    environment:
+      - INITIAL_PASSWORD=hoo0o0o0ooooOooO00oo0OOoooraaay
+      - PORT=20128
+      - NEXT_PUBLIC_BASE_URL=https://or.de.snnlab.ru
+      # Tool Scaffolding Features Enabled
+      - ENABLE_TOOL_SCAFFOLDING=true
+      - NODE_ENV=production
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:20128/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    labels:
+      com.example.description: "OmniRoute with Tool Prompt Scaffolding"
+      com.example.features: "MS-Web tools, Muse tools, Tool scaffolding"
+
+volumes:
+  omniroute-data:
+    driver: local
