@@ -8,16 +8,20 @@ COPY . .
 
 RUN npm install --legacy-peer-deps
 
+# Build with standalone output (server-only)
 RUN npm run build
 
-RUN npm prune --omit=dev --legacy-peer-deps && \
-    find node_modules -type d -name ".bin" -exec rm -rf {} + 2>/dev/null || true && \
-    find node_modules -type f -name "*.md" -delete && \
-    find node_modules -type f -name "*.map" -delete && \
-    find node_modules -type f -name "*.ts" -delete && \
-    npm cache clean --force && \
+# Prune dev dependencies
+RUN npm prune --omit=dev --legacy-peer-deps
+
+# Aggressive cleanup of node_modules
+RUN find node_modules -type f \( -name "*.md" -o -name "*.map" -o -name "*.ts" -o -name "*.test.js" -o -name "*.d.ts" \) -delete && \
+    find node_modules -type d \( -name ".bin" -o -name "test" -o -name "tests" -o -name "example" -o -name "examples" \) -exec rm -rf {} + 2>/dev/null || true
+
+# Remove build tools and cache
+RUN npm cache clean --force && \
     apk del python3 make g++ build-base && \
-    rm -rf /tmp/* ~/.npm .git .github
+    rm -rf /tmp/* ~/.npm .git .github /app/.next/cache /app/src /app/scripts /app/bin
 
 EXPOSE 20128
 ENV PORT=20128
