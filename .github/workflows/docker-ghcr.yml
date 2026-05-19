@@ -35,5 +35,4 @@ jobs:
           tags: |
             ghcr.io/serebr1k-code/bobrroute-toolscaffold:latest
             ghcr.io/serebr1k-code/bobrroute-toolscaffold:${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          no-cache: true
