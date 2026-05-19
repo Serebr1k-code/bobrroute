@@ -23,15 +23,16 @@ WORKDIR /app
 # Install only curl for healthcheck
 RUN apk add --no-cache curl
 
-# Copy built app and package.json only
+# Copy built app, scripts (for postinstall), and package.json
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public
+COPY --from=builder /app/scripts ./scripts
 COPY --from=builder /app/package.json .
 
 # Install ONLY production dependencies in clean node_modules
 RUN npm install --legacy-peer-deps --omit=dev --no-save && \
     npm cache clean --force && \
-    rm -rf /tmp/* ~/.npm
+    rm -rf /tmp/* ~/.npm /root/.npm
 
 EXPOSE 20128
 ENV PORT=20128
