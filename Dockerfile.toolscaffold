@@ -6,39 +6,34 @@ WORKDIR /app
 # Install build dependencies
 RUN apk add --no-cache python3 make g++ build-base
 
-# Copy package files
-COPY package.json package-lock.json* npm-shrinkwrap.json* ./
-
-# Install all dependencies (with dev)
-RUN npm install --legacy-peer-deps 2>/dev/null || npm install --legacy-peer-deps --no-audit
-
-# Copy source code
+# Copy EVERYTHING first
 COPY . .
+
+# Install all dependencies
+RUN npm install --legacy-peer-deps
 
 # Build
 RUN npm run build
 
-# Stage 2: Runtime
+# Stage 2: Runtime  
 FROM node:24-alpine
 
 WORKDIR /app
 
-# Install runtime dependencies only
+# Install only curl for healthcheck
 RUN apk add --no-cache curl
 
-# Copy from builder - only necessary files
+# Copy built app and package.json only
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public
-COPY --from=builder /app/package.json package.json
+COPY --from=builder /app/package.json .
 
-# Create minimal node_modules with only production deps
-RUN npm install --legacy-peer-deps --only=production --no-save 2>/dev/null || true
-
-# Cleanup
-RUN rm -rf /tmp/* ~/.npm
+# Install ONLY production dependencies in clean node_modules
+RUN npm install --legacy-peer-deps --omit=dev --no-save && \
+    npm cache clean --force && \
+    rm -rf /tmp/* ~/.npm
 
 EXPOSE 20128
-
 ENV PORT=20128
 ENV NODE_ENV=production
 
