@@ -2,13 +2,13 @@ FROM node:24-alpine
 
 WORKDIR /app
 
-# Install build dependencies for native modules
-RUN apk add --no-cache python3 make g++
+# Install build dependencies first
+RUN apk add --no-cache python3 make g++ build-base
 
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
+# Install dependencies with build tools available
 RUN npm ci --legacy-peer-deps
 
 # Copy application code
@@ -18,7 +18,7 @@ COPY . .
 RUN npm run build
 
 # Remove build dependencies to reduce image size
-RUN apk del python3 make g++
+RUN apk del python3 make g++ build-base
 
 # Expose port
 EXPOSE 20128
