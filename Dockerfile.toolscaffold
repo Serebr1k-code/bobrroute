@@ -1,32 +1,27 @@
-# Stage 1: Build
-FROM node:24-alpine AS builder
+FROM node:24-alpine
 
 WORKDIR /app
 
 # Install build dependencies
 RUN apk add --no-cache python3 make g++ build-base
 
-# Copy ALL files first (needed for postinstall script)
+# Copy ALL files
 COPY . .
 
 # Install dependencies
-RUN npm ci --legacy-peer-deps
+RUN npm install --legacy-peer-deps
 
 # Build application
 RUN npm run build
 
-# Stage 2: Runtime
-FROM node:24-alpine
+# Remove dev dependencies to reduce size
+RUN npm prune --omit=dev --legacy-peer-deps
 
-WORKDIR /app
+# Remove build tools
+RUN apk del python3 make g++ build-base
 
-# Copy only built application from builder
-COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/package*.json ./
-
-# Install only production dependencies (skip scripts)
-RUN npm ci --legacy-peer-deps --omit=dev --no-optional --ignore-scripts
+# Remove node cache and unnecessary files
+RUN rm -rf /app/.git /app/.github /app/.next/cache /app/node_modules/.cache
 
 # Expose port
 EXPOSE 20128
