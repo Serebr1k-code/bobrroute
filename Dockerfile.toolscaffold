@@ -5,14 +5,14 @@ WORKDIR /app
 # Install build dependencies
 RUN apk add --no-cache python3 make g++ build-base
 
-# Copy package files
+# Copy ALL files first (needed for postinstall script)
+COPY . .
+
+# Copy package files (redundant but explicit)
 COPY package*.json ./
 
-# Install all dependencies including optional (needed for build)
+# Install dependencies
 RUN npm ci --legacy-peer-deps
-
-# Copy application code
-COPY . .
 
 # Build application
 RUN npm run build
