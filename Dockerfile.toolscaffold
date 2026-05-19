@@ -2,15 +2,27 @@ FROM node:24-alpine
 
 WORKDIR /app
 
-# Copy only production-ready files
-COPY .next ./.next
-COPY public ./public
-COPY package.json package-lock.json* ./
+RUN apk add --no-cache python3 make g++ build-base
 
-# Install only production dependencies
-RUN npm install --omit=dev --legacy-peer-deps --no-save && \
+COPY . .
+
+RUN npm install --legacy-peer-deps
+
+RUN npm run build
+
+# DELETE the huge .next/standalone with embedded node_modules
+RUN rm -rf .next/standalone .next/cache
+
+# Keep only .next/static and .next/server (the actual build output)
+# Prune dev dependencies
+RUN npm prune --omit=dev --legacy-peer-deps
+
+# Aggressive cleanup
+RUN find node_modules -type f \( -name "*.md" -o -name "*.map" -o -name "*.ts" -o -name "*.d.ts" -o -name "*.test.js" \) -delete && \
+    find node_modules -type d \( -name ".bin" -o -name "test" -o -name "tests" \) -exec rm -rf {} + 2>/dev/null || true && \
     npm cache clean --force && \
-    rm -rf /tmp/* ~/.npm
+    apk del python3 make g++ build-base && \
+    rm -rf /tmp/* ~/.npm .git .github /app/src /app/scripts /app/bin /app/docs
 
 EXPOSE 20128
 ENV PORT=20128
