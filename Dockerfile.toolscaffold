@@ -1,44 +1,29 @@
-# Stage 1: Build
-FROM node:24-alpine AS builder
-
-WORKDIR /app
-
-# Install build dependencies
-RUN apk add --no-cache python3 make g++ build-base
-
-# Copy EVERYTHING first
-COPY . .
-
-# Install all dependencies
-RUN npm install --legacy-peer-deps
-
-# Build
-RUN npm run build
-
-# Stage 2: Runtime  
 FROM node:24-alpine
 
 WORKDIR /app
 
-# Install only curl for healthcheck
-RUN apk add --no-cache curl
+RUN apk add --no-cache python3 make g++ build-base
 
-# Copy built app, scripts (for postinstall), and package.json
-COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/scripts ./scripts
-COPY --from=builder /app/package.json .
+COPY . .
 
-# Install ONLY production dependencies in clean node_modules
-RUN npm install --legacy-peer-deps --omit=dev --no-save && \
+RUN npm install --legacy-peer-deps
+
+RUN npm run build
+
+RUN npm prune --omit=dev --legacy-peer-deps && \
+    find node_modules -type d -name ".bin" -exec rm -rf {} + 2>/dev/null || true && \
+    find node_modules -type f -name "*.md" -delete && \
+    find node_modules -type f -name "*.map" -delete && \
+    find node_modules -type f -name "*.ts" -delete && \
     npm cache clean --force && \
-    rm -rf /tmp/* ~/.npm /root/.npm
+    apk del python3 make g++ build-base && \
+    rm -rf /tmp/* ~/.npm .git .github
 
 EXPOSE 20128
 ENV PORT=20128
 ENV NODE_ENV=production
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD curl -f http://localhost:20128 || exit 1
+    CMD wget --quiet --tries=1 --spider http://localhost:20128 || exit 1
 
 CMD ["npm", "start"]
