@@ -1,38 +1,48 @@
-FROM node:24-alpine
+# Stage 1: Build
+FROM node:24-alpine AS builder
 
 WORKDIR /app
 
 # Install build dependencies
 RUN apk add --no-cache python3 make g++ build-base
 
-# Copy ALL files
+# Copy package files
+COPY package.json package-lock.json* npm-shrinkwrap.json* ./
+
+# Install all dependencies (with dev)
+RUN npm install --legacy-peer-deps 2>/dev/null || npm install --legacy-peer-deps --no-audit
+
+# Copy source code
 COPY . .
 
-# Install dependencies
-RUN npm install --legacy-peer-deps
-
-# Build application
+# Build
 RUN npm run build
 
-# Remove dev dependencies to reduce size
-RUN npm prune --omit=dev --legacy-peer-deps
+# Stage 2: Runtime
+FROM node:24-alpine
 
-# Remove build tools
-RUN apk del python3 make g++ build-base
+WORKDIR /app
 
-# Remove node cache and unnecessary files
-RUN rm -rf /app/.git /app/.github /app/.next/cache /app/node_modules/.cache
+# Install runtime dependencies only
+RUN apk add --no-cache curl
 
-# Expose port
+# Copy from builder - only necessary files
+COPY --from=builder /app/.next ./.next
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/package.json package.json
+
+# Create minimal node_modules with only production deps
+RUN npm install --legacy-peer-deps --only=production --no-save 2>/dev/null || true
+
+# Cleanup
+RUN rm -rf /tmp/* ~/.npm
+
 EXPOSE 20128
 
-# Set environment variables
 ENV PORT=20128
 ENV NODE_ENV=production
 
-# Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD node -e "require('http').get('http://localhost:20128', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})"
+    CMD curl -f http://localhost:20128 || exit 1
 
-# Start application
 CMD ["npm", "start"]
