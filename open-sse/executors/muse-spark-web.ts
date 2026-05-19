@@ -17,7 +17,7 @@ import {
   extractToolCalls,
   processScaffoldedToolResponse,
   convertToolCallsToOpenAIFormat,
-} from "./toolPromptScaffold.ts";
+} from "../services/toolPromptScaffold.ts";
 
 const META_AI_GRAPHQL_API = "https://www.meta.ai/api/graphql";
 // Meta rebranded the chat product from "Abra" to "Ecto"; the session cookie
