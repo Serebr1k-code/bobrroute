@@ -2,14 +2,14 @@ FROM node:24-alpine
 
 WORKDIR /app
 
-# Install build dependencies first
+# Install build dependencies
 RUN apk add --no-cache python3 make g++ build-base
 
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies with build tools available
-RUN npm ci --legacy-peer-deps
+# Install dependencies, skip optional ones that need compilation
+RUN npm ci --legacy-peer-deps --no-optional --ignore-scripts
 
 # Copy application code
 COPY . .
@@ -17,7 +17,7 @@ COPY . .
 # Build application
 RUN npm run build
 
-# Remove build dependencies to reduce image size
+# Remove build dependencies
 RUN apk del python3 make g++ build-base
 
 # Expose port
