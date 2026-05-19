@@ -1,5 +1,5 @@
 # Stage 1: Build
-FROM node:24-alpine as builder
+FROM node:24-alpine AS builder
 
 WORKDIR /app
 
@@ -24,10 +24,9 @@ WORKDIR /app
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/package*.json ./
-COPY --from=builder /app/node_modules ./node_modules
 
-# Install only production dependencies
-RUN npm ci --legacy-peer-deps --omit=dev --no-optional
+# Install only production dependencies (skip scripts)
+RUN npm ci --legacy-peer-deps --omit=dev --no-optional --ignore-scripts
 
 # Expose port
 EXPOSE 20128
